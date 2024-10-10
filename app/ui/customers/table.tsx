@@ -2,7 +2,7 @@ import Image from 'next/image';
 import { lusitana } from '@/app/ui/fonts';
 import Search from '@/app/ui/search';
 import { FormattedCustomersTable } from '@/app/lib/definitions';
-import { CreateCustomer, UpdateCustomer } from './buttons';
+import { CreateCustomer, DeleteCustomer, UpdateCustomer } from './buttons';
 
 export default async function CustomersTable({
   customers,
@@ -116,6 +116,7 @@ export default async function CustomersTable({
                       </td>
                       <td className="whitespace-nowrap px-4 py-5 bg-white flex justify-end gap-2">
                         <UpdateCustomer id={customer.id} />
+                        <DeleteCustomer id={customer.id} />
                       </td>
                     </tr>
                   ))}
