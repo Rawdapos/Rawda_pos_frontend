@@ -1,43 +1,54 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
-import bcrypt from "bcrypt";
-import { sql } from "@vercel/postgres";
 import { z } from "zod";
-import type { User } from "@/app/lib/definitions";
 import { authConfig } from "./auth.config";
 
-async function getUser(email: string): Promise<User | undefined> {
-  try {
-    const user = await sql<User>`SELECT * FROM users WHERE email=${email}`;
-    return user.rows[0];
-  } catch (error) {
-    console.error("Failed to fetch user:", error);
-    throw new Error("Failed to fetch user.");
-  }
-}
 
-export const { auth, signIn, signOut } = NextAuth({
+export const { auth,signIn, signOut } = NextAuth({
   ...authConfig,
   providers: [
     Credentials({
       async authorize(credentials) {
         const parsedCredentials = z
-          .object({ email: z.string().email(), password: z.string().min(6) })
+          .object({ email: z.string(), password: z.string().min(6) })
           .safeParse(credentials);
 
         if (parsedCredentials.success) {
           const { email, password } = parsedCredentials.data;
-
-          const user = await getUser(email);
-          if (!user) return null;
-
-          const passwordsMatch = await bcrypt.compare(password, user.password);
-          if (passwordsMatch) return user;
+          const data = await authenticateUser({username:email,password:password});
+          if (!data) return null;
+          return data;
         }
-
         console.log("Invalid credentials");
         return null;
       },
     }),
   ],
+  session: {
+    strategy: "jwt",
+  },
 });
+
+export const authenticateUser = async ({ username, password }: { username:String,password:String }) => {
+
+  try {
+      const response = await fetch('http://localhost:8080/api/user/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          "username": username,
+          "password": password
+        },)
+      });
+      if (response.ok) {
+        const data = await response.json();
+        return data;
+      } else {
+        console.error('Erreur de connexion 2');
+        return null;
+      }
+  } catch (error) {
+    console.error('Erreur de connexion 3:', error);
+    throw(error);
+  }
+};
